@@ -1,52 +1,61 @@
-use std::ops::{Add, AddAssign};
 use crate::VectorND;
+use std::ops::{Add, AddAssign};
+use std::borrow::Borrow;
 
-//Образующие
-impl<const N: usize> Add for &VectorND<N> {
-    type Output = VectorND<N>;
-    #[inline]
-    fn add(self, rhs: Self) -> Self::Output {
-        Self::Output::from_fn(|i| self[i] + rhs[i])
+impl<const N: usize> VectorND<N> {
+    fn generic_alloc_add(a: impl Borrow<VectorND<N>>, b: impl Borrow<VectorND<N>>) -> VectorND<N> {
+        let a = a.borrow();
+        let b = b.borrow();
+        VectorND::from_fn(|i| a[i] + b[i])
     }
-}
 
-impl<const N: usize> AddAssign<&VectorND<N>> for VectorND<N> {
-    #[inline]
-    fn add_assign(&mut self, rhs: &VectorND<N>) {
-        for i in 0..N {
-            self[i] += rhs[i]
+    fn generic_add_assign(&mut self, other: impl Borrow<VectorND<N>>) {
+        for (s, o) in self.iter_mut().zip(other.borrow()) {
+            *s += o
         }
     }
 }
 
-//Образованные
-impl<const N: usize> Add<VectorND<N>> for &VectorND<N> {
-    type Output = VectorND<N>;
-    #[inline]
-    fn add(self, mut rhs: VectorND<N>) -> Self::Output {
-        rhs += self; rhs
-    }
+macro_rules! impl_add_assign {
+    ($rhs:ty) => {
+        impl<const N: usize> AddAssign<$rhs> for VectorND<N> {
+            fn add_assign(&mut self, rhs: $rhs) {
+                self.generic_add_assign(rhs);
+            }
+        }
+    };
 }
 
-impl<const N: usize> Add<&VectorND<N>> for VectorND<N> {
-    type Output = VectorND<N>;
-    #[inline]
-    fn add(mut self, rhs: &VectorND<N>) -> Self::Output {
-        self += rhs; self
-    }
+impl_add_assign!(VectorND<N>);
+impl_add_assign!(&VectorND<N>);
+impl_add_assign!(&mut VectorND<N>);
+
+macro_rules! impl_add {
+    ($lhs:ty, $rhs:ty, $logic_closure:expr) => {
+        impl<const N: usize> Add<$rhs> for $lhs {
+            type Output = VectorND<N>;
+            fn add(self, rhs: $rhs) -> Self::Output {
+                $logic_closure(self, rhs)
+            }
+        }
+    };
+    ($lhs:ty, $rhs:ty) => {
+        impl<const N: usize> Add<$rhs> for $lhs {
+            type Output = VectorND<N>;
+            fn add(self, rhs: $rhs) -> Self::Output {
+                VectorND::generic_alloc_add(self, rhs)
+            }
+        }
+    };
 }
 
-impl<const N: usize> AddAssign for VectorND<N> {
-    #[inline]
-    fn add_assign(&mut self, rhs: Self) {
-        self.add_assign(&rhs);
-    }
-}
+impl_add!(VectorND<N>, VectorND<N>, |mut lhs, rhs| {lhs += rhs; lhs});
+impl_add!(VectorND<N>, &VectorND<N>, |mut lhs, rhs| {lhs += rhs; lhs});
+impl_add!(&VectorND<N>, VectorND<N>, |lhs, mut rhs| {rhs += lhs; rhs});
+impl_add!(VectorND<N>, &mut VectorND<N>, |mut lhs, rhs| {lhs += rhs; lhs});
+impl_add!(&mut VectorND<N>, VectorND<N>, |lhs, mut rhs| {rhs += lhs; rhs});
 
-impl<const N: usize> Add for VectorND<N> {
-    type Output = Self;
-    #[inline]
-    fn add(mut self, rhs: Self) -> Self::Output {
-        self += rhs; self
-    }
-}
+impl_add!(&VectorND<N>, &VectorND<N>);
+impl_add!(&mut VectorND<N>, &VectorND<N>);
+impl_add!(&VectorND<N>, &mut VectorND<N>);
+impl_add!(&mut VectorND<N>, &mut VectorND<N>);
