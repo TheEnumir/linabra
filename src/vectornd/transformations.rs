@@ -18,6 +18,7 @@ impl VectorND<4> {
     }
 }
 
+/// Создает массив f64 из [`VectorND`].
 impl<const N: usize> From<VectorND<N>> for [f64; N] {
     #[inline]
     fn from(value: VectorND<N>) -> Self {
@@ -25,6 +26,7 @@ impl<const N: usize> From<VectorND<N>> for [f64; N] {
     }
 }
 
+/// Создает массив f32 из [`VectorND`]. Возможна потеря точности.
 impl<const N: usize> From<VectorND<N>> for [f32; N] {
     #[inline]
     fn from(value: VectorND<N>) -> Self {
