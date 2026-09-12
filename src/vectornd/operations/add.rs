@@ -49,11 +49,11 @@ macro_rules! impl_add {
     };
 }
 
-impl_add!(VectorND<N>, VectorND<N>, |mut lhs, rhs| {lhs += rhs; lhs});
-impl_add!(VectorND<N>, &VectorND<N>, |mut lhs, rhs| {lhs += rhs; lhs});
-impl_add!(&VectorND<N>, VectorND<N>, |lhs, mut rhs| {rhs += lhs; rhs});
-impl_add!(VectorND<N>, &mut VectorND<N>, |mut lhs, rhs| {lhs += rhs; lhs});
-impl_add!(&mut VectorND<N>, VectorND<N>, |lhs, mut rhs| {rhs += lhs; rhs});
+impl_add!(VectorND<N>, VectorND<N>, |mut lhs, rhs| { lhs += rhs; lhs });
+impl_add!(VectorND<N>, &VectorND<N>, |mut lhs, rhs| { lhs += rhs; lhs });
+impl_add!(&VectorND<N>, VectorND<N>, |lhs, mut rhs| { rhs += lhs; rhs });
+impl_add!(VectorND<N>, &mut VectorND<N>, |mut lhs, rhs| { lhs += rhs; lhs });
+impl_add!(&mut VectorND<N>, VectorND<N>, |lhs, mut rhs| { rhs += lhs; rhs });
 
 impl_add!(&VectorND<N>, &VectorND<N>);
 impl_add!(&mut VectorND<N>, &VectorND<N>);

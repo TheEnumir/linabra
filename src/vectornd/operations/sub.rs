@@ -1,52 +1,67 @@
-use std::ops::{Sub, SubAssign};
 use crate::VectorND;
+use std::ops::{Sub, SubAssign};
+use std::borrow::Borrow;
 
-//Образующие
-impl<const N: usize> Sub for &VectorND<N> {
-    type Output = VectorND<N>;
-    #[inline]
-    fn sub(self, rhs: Self) -> Self::Output {
-        Self::Output::from_fn(|i| self[i] - rhs[i])
+impl<const N: usize> VectorND<N> {
+    fn generic_alloc_sub(a: impl Borrow<VectorND<N>>, b: impl Borrow<VectorND<N>>) -> VectorND<N> {
+        let a = a.borrow();
+        let b = b.borrow();
+        VectorND::from_fn(|i| a[i] - b[i])
     }
-}
 
-impl<const N: usize> SubAssign<&VectorND<N>> for VectorND<N> {
-    #[inline]
-    fn sub_assign(&mut self, rhs: &VectorND<N>) {
-        for i in 0..N {
-            self[i] -= rhs[i]
+    fn generic_sub_assign(&mut self, other: impl Borrow<VectorND<N>>) {
+        for (s, o) in self.iter_mut().zip(other.borrow()) {
+            *s -= o
+        }
+    }
+
+    fn generic_reverse_sub_assign(&mut self, other: impl Borrow<VectorND<N>>) {
+        for (s, o) in self.iter_mut().zip(other.borrow()) {
+            *s = *o - *s
         }
     }
 }
 
-//Образованные
-impl<const N: usize> Sub<VectorND<N>> for &VectorND<N> {
-    type Output = VectorND<N>;
-    #[inline]
-    fn sub(self, mut rhs: VectorND<N>) -> Self::Output {
-        rhs -= self; -rhs
-    }
+macro_rules! impl_sub_assign {
+    ($rhs:ty) => {
+        impl<const N: usize> SubAssign<$rhs> for VectorND<N> {
+            fn sub_assign(&mut self, rhs: $rhs) {
+                self.generic_sub_assign(rhs);
+            }
+        }
+    };
 }
 
-impl<const N: usize> Sub<&VectorND<N>> for VectorND<N> {
-    type Output = VectorND<N>;
-    #[inline]
-    fn sub(mut self, rhs: &VectorND<N>) -> Self::Output {
-        self -= rhs; self
-    }
+impl_sub_assign!(VectorND<N>);
+impl_sub_assign!(&VectorND<N>);
+impl_sub_assign!(&mut VectorND<N>);
+
+macro_rules! impl_sub {
+    ($lhs:ty, $rhs:ty, $logic_closure:expr) => {
+        impl<const N: usize> Sub<$rhs> for $lhs {
+            type Output = VectorND<N>;
+            fn sub(self, rhs: $rhs) -> Self::Output {
+                $logic_closure(self, rhs)
+            }
+        }
+    };
+    ($lhs:ty, $rhs:ty) => {
+        impl<const N: usize> Sub<$rhs> for $lhs {
+            type Output = VectorND<N>;
+            fn sub(self, rhs: $rhs) -> Self::Output {
+                VectorND::generic_alloc_sub(self, rhs)
+            }
+        }
+    };
 }
 
-impl<const N: usize> SubAssign for VectorND<N> {
-    #[inline]
-    fn sub_assign(&mut self, rhs: Self) {
-        self.sub_assign(&rhs);
-    }
-}
+impl_sub!(VectorND<N>, VectorND<N>, |mut lhs, rhs| { lhs -= rhs; lhs });
+impl_sub!(VectorND<N>, &VectorND<N>, |mut lhs, rhs| { lhs -= rhs; lhs });
+impl_sub!(&VectorND<N>, VectorND<N>, |lhs, mut rhs: VectorND<N>| { rhs.generic_reverse_sub_assign(lhs); rhs });
+impl_sub!(VectorND<N>, &mut VectorND<N>, |mut lhs, rhs| { lhs -= rhs; lhs });
+impl_sub!(&mut VectorND<N>, VectorND<N>, |lhs, mut rhs: VectorND<N>| { rhs.generic_reverse_sub_assign(lhs); rhs });
 
-impl<const N: usize> Sub for VectorND<N> {
-    type Output = Self;
-    #[inline]
-    fn sub(mut self, rhs: Self) -> Self::Output {
-        self -= rhs; self
-    }
-}
+impl_sub!(&VectorND<N>, &VectorND<N>);
+impl_sub!(&mut VectorND<N>, &VectorND<N>);
+impl_sub!(&VectorND<N>, &mut VectorND<N>);
+impl_sub!(&mut VectorND<N>, &mut VectorND<N>);
