@@ -1,18 +1,18 @@
 use std::ops::Neg;
 use crate::VectorND;
 
-impl<const N: usize> Neg for VectorND<N> {
-    type Output = Self;
-    #[inline]
-    fn neg(mut self) -> Self::Output {
-        self *= -1.0; self
-    }
+macro_rules! impl_neg {
+    ($vec_type:ty, $logic_closure:expr) => {
+        impl<const N: usize> Neg for $vec_type {
+            type Output = VectorND<N>;
+            #[inline]
+            fn neg(self) -> Self::Output {
+                $logic_closure(self)
+            }
+        }
+    };
 }
 
-impl<const N: usize> Neg for &VectorND<N> {
-    type Output = VectorND<N>;
-    #[inline]
-    fn neg(self) -> Self::Output {
-        -self.clone()
-    }
-}
+impl_neg!(VectorND<N>, |mut v| {v *= -1.0; v});
+impl_neg!(&VectorND<N>, |v: &VectorND<N>| -v.clone());
+impl_neg!(&mut VectorND<N>, |v: &mut VectorND<N>| -v.clone());
